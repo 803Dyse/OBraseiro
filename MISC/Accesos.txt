@@ -1,0 +1,5 @@
+=== PhpMyAdmin ===
+root
+root
+=== PhpMyAdmin ===
+

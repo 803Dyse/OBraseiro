@@ -1,0 +1,20 @@
+Este enlace lleva al excalidraw, donde hago algunos apuntess y esbozos:
+--> https://excalidraw.com/#json=epbilRB_WA4e_CZw8ngyT,ywy2-WjuAaLOMAs4K9IHmA
+
+
+Lista de tareas:
+Añadir etiquetas meta bien
+Ajustar todos los enlaces y ver que funcionan
+Corregir toda la gramatica
+Comprobar que todos los elementos interactivos funcionan bien
+Comprobar el responsive a movil vertical
+Comprar que el codigo está bien puesto en toda la web
+Comentar lo que se vea carecido de comentários, sobretodo código de scripts y estilos
+Rellenar los alt
+Hacer el guia de estilos
+Hacer prototipos / mockups
+MODULARIZAR CABECERA Y PIE, SEPARANDOLOS A TEMPLATES.
+
+
+EXTRA:
+METERLE ACCESIBILIDAD A TODO.

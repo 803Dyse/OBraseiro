@@ -1,0 +1,21 @@
+.formulario {
+    max-width: 400px;
+    margin: 0 auto;
+  }
+
+  .btn {
+    transition: background-color 0.3s;
+  }
+
+  .background-image {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-image: url("/img/png/fondoBarbacoaLogin.png");
+    background-size: cover;
+    background-position: center;
+    filter: blur(5px);
+    z-index: -1;
+  }
