@@ -8,13 +8,15 @@ Ajustar todos los enlaces y ver que funcionan
 Corregir toda la gramatica
 Comprobar que todos los elementos interactivos funcionan bien
 Comprobar el responsive a movil vertical
-Comprar que el codigo está bien puesto en toda la web
+Comprobar que el codigo está bien puesto en toda la web
 Comentar lo que se vea carecido de comentários, sobretodo código de scripts y estilos
 Rellenar los alt
 Hacer el guia de estilos
 Hacer prototipos / mockups
-MODULARIZAR CABECERA Y PIE, SEPARANDOLOS A TEMPLATES.
 
 
 EXTRA:
 METERLE ACCESIBILIDAD A TODO.
+
+Hecho:
+MODULARIZAR CABECERA Y PIE, SEPARANDOLOS A TEMPLATES.

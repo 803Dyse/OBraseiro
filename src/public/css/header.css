@@ -1,0 +1,43 @@
+
+/* Este media lo metemos para mostrar el menu de moviles. */
+@media (max-width: 460px) {
+    #desktop-menu {
+        display: none;
+    }
+
+    #mobile-menu {
+        display: block;
+    }
+}
+
+/* Este utilizamos para esconder el menu de móvil */
+@media (min-width: 461px) {
+    #desktop-menu {
+        display: block;
+    }
+
+    #mobile-menu {
+        display: none;
+    }
+}
+
+#fullscreen-menu {
+    opacity: 0;
+    transform: translateX(100%);
+    transition: all 0.5s ease-in-out;
+}
+
+#fullscreen-menu.open {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+@keyframes scroll {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        transform: translateX(-100%);
+    }
+}

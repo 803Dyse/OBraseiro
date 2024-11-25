@@ -4,7 +4,9 @@ RUN apt-get update && apt-get install -y \
     zip \
     unzip \
     git \
-    libicu-dev && \
+    libicu-dev \
+    libmariadb-dev-compat \
+    libmariadb-dev && \
     docker-php-ext-configure intl && \
     docker-php-ext-install intl mysqli pdo pdo_mysql && \
     rm -rf /var/lib/apt/lists/*
@@ -25,5 +27,7 @@ RUN echo '<VirtualHost *:80>\n\
         Require all granted\n\
     </Directory>\n\
 </VirtualHost>' > /etc/apache2/sites-available/000-default.conf
+
+RUN chmod -R 777 /var/www/html/writable
 
 CMD ["apache2-foreground"]
