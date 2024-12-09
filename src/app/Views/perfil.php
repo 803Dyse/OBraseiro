@@ -8,7 +8,7 @@
 
 <main class="flex flex-col min-h-screen mx-auto max-w-7xl px-4">
     <!-- Contenido de perfil aquí -->
-    <div class="flex-grow w-full py-8 space-y-8">
+    <div class="w-full py-8 space-y-8">
         <div class="flex flex-col md:flex-row space-y-4 md:space-y-0 md:gap-x-8">
             <div class="flex items-center bg-gray-100 shadow-2xl rounded-lg p-6 w-full md:w-1/3">
                 <!-- Imagen de perfil -->

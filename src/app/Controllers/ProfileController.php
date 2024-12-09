@@ -23,8 +23,7 @@ class ProfileController extends BaseController {
      * usuario tiene su sesion iniciada, para no tener que estar creando 
      * instancia de clase todo el rato
      */
-    public function __construct()
-    {
+    public function __construct() {
         $this->userModel = new UserModel();
         $this->pedidoModel = new PedidoModel();
         $this->tokenModel = new TokenModel();
@@ -34,20 +33,17 @@ class ProfileController extends BaseController {
     /**
      * Verifica si el usuario está logueado
      */
-    private function isLoggedIn()
-    {
+    private function isLoggedIn() {
         return $this->session->has('id') && $this->session->get('isLoggedIn');
     }
 
     /**
      * Muestra la página de perfil del usuario
      */
-    public function mostrarPerfilUsuario()
-    {
+    public function mostrarPerfilUsuario() {
         // Verificamos si el usuario está logueado, si no está, se manda otra 
         // vez al formulario de login
-        if (!$this->isLoggedIn())
-        {
+        if (!$this->isLoggedIn()) {
             return redirect()->to('/acceso');
         }
 
@@ -55,8 +51,7 @@ class ProfileController extends BaseController {
         $user = $this->userModel->getUserById($userId);
 
         // Comprobamos que el usuario que instanciamos existe
-        if (!$user)
-        {
+        if (!$user) {
             return redirect()->to('/acceso');
         }
 
@@ -82,8 +77,7 @@ class ProfileController extends BaseController {
      * Método que obtiene la foto de perfil del usuario por Gravatar, en el caso
      * de que tenga
      */
-    private function getGravatarUrl($email, $size = 200)
-    {
+    private function getGravatarUrl($email, $size = 200) {
         $hash = md5(strtolower(trim($email)));
         return "https://www.gravatar.com/avatar/$hash?s=$size&d=identicon";
     }
@@ -91,11 +85,9 @@ class ProfileController extends BaseController {
     /**
      * Desactiva la cuenta del usuario
      */
-    public function eliminar_cuenta()
-    {
+    public function eliminar_cuenta() {
         // Verificamos si el usuario está logueado
-        if (!$this->isLoggedIn())
-        {
+        if (!$this->isLoggedIn()) {
             return redirect()->to('/acceso');
         }
 
@@ -104,14 +96,11 @@ class ProfileController extends BaseController {
 
         $resultado = $this->userModel->desactivarCuenta($userId);
 
-        if ($resultado)
-        {
+        if ($resultado) {
             // Si se desactiva correctamente, destruimos la sesión y redirigimos al inicio
             $this->session->destroy();
             return redirect()->to('/')->with('success', 'Tu cuenta ha sido eliminada exitosamente.');
-        }
-        else
-        {
+        } else {
             // Si ocurre un error, mostramos un mensaje al usuario
             return redirect()->to('/perfil')->with('error', 'No se pudo eliminar la cuenta. Inténtalo de nuevo.');
         }
@@ -120,67 +109,69 @@ class ProfileController extends BaseController {
     /**
      * Método que cambia la foto de perfil del usuario
      */
-    public function cambiarFotoPerfil()
-    {
-        if (!$this->isLoggedIn())
-        {
+    public function cambiarFotoPerfil() {
+        // Verificamos si el usuario está logueado
+        if (!$this->isLoggedIn()) {
             return redirect()->to('/acceso');
         }
 
         $userId = $this->session->get('id');
         $file = $this->request->getFile('foto_perfil');
 
-        // Verificamos si el archivo es válido, segun los formatos que vamos a 
-        // especificar luego
-        if (!$file->isValid())
-        {
-            return redirect()->to('/perfil')->with('error', 'No se pudo subir el archivo.');
+        // Verificamos si el archivo es válido
+        if (!$file->isValid()) {
+            log_message('error', 'Error en la carga del archivo: ' . $file->getErrorString());
+            return redirect()->to('/perfil')->with('error', 'No se pudo subir el archivo. Error: ' . $file->getErrorString());
         }
 
+        // Validamos el formato y tamaño del archivo
         $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-        // Verificamos si el tipo de archivo es permitido
-        if (!in_array($file->getMimeType(), $allowedTypes))
-        {
+        if (!in_array($file->getMimeType(), $allowedTypes)) {
             return redirect()->to('/perfil')->with('error', 'Solo se permiten archivos en formato JPEG, PNG, GIF o WEBP.');
         }
 
-        // Definimos en esta variable el tamaño maximo de los archivos de foto 
-        // de perfil
-        $maxSize = 5 * 1024 * 1024; // 5MB
-        // Verificamos el tamaño del archivo
-        if ($file->getSize() > $maxSize)
-        {
+        $maxSize = 5 * 1024 * 1024; // Tamaño máximo: 5MB
+        if ($file->getSize() > $maxSize) {
             return redirect()->to('/perfil')->with('error', 'El tamaño de la imagen no debe exceder los 5MB.');
         }
 
-        // Encontré esta manera de generar un nombre unico para el fichero
-        $newFileName = $userId . '_' . uniqid() . '.' . $file->guessExtension();
-        $uploadPath = WRITEPATH . 'uploads/profile_pics'; // Guardamos la foto de perfil que se sube en esta carpeta
-        // Creamos el directorio si no existe (lo normal es que este creado, 
-        // pero bueno, hay que tenerlo por si pasa algo.)
-        if (!is_dir($uploadPath))
-        {
-            mkdir($uploadPath, 0755, true);
+        // Ruta de subida (dentro de `public`)
+        $uploadPath = FCPATH . 'uploads/profile_pics/';
+
+        // Verificamos si el directorio existe
+        if (!is_dir($uploadPath)) {
+            if (!mkdir($uploadPath, 0755, true)) {
+                log_message('error', 'No se pudo crear el directorio: ' . $uploadPath);
+                return redirect()->to('/perfil')->with('error', 'No se pudo crear el directorio para guardar la imagen.');
+            }
         }
 
+        // Generamos un nombre único para el archivo
+        $newFileName = $userId . '_' . uniqid() . '.' . $file->guessExtension();
+
         // Movemos el archivo al directorio de destino
-        $file->move($uploadPath, $newFileName);
+        if (!$file->move($uploadPath, $newFileName)) {
+            log_message('error', 'Error al mover el archivo al directorio: ' . $uploadPath);
+            return redirect()->to('/perfil')->with('error', 'No se pudo guardar la imagen en el servidor.');
+        }
 
-        $data = ['foto_perfil' => 'uploads/profile_pics/' . $newFileName];
+        // Guardamos la ruta relativa en la base de datos
+        $filePath = 'uploads/profile_pics/' . $newFileName;
+        if (!$this->userModel->update($userId, ['foto_perfil' => $filePath])) {
+            log_message('error', 'Error al actualizar la base de datos con la ruta de la imagen.');
+            return redirect()->to('/perfil')->with('error', 'No se pudo actualizar la foto de perfil en la base de datos.');
+        }
 
-        $this->userModel->update($userId, $data);
-
+        // Redirigimos con un mensaje de éxito
         return redirect()->to('/perfil')->with('success', 'Foto de perfil actualizada correctamente.');
     }
 
     /**
      * Método que solicita el cambio de contraseña del usuario, si este lo pide
      */
-    public function solicitarCambioContrasena()
-    {
+    public function solicitarCambioContrasena() {
         // Verificamos si el usuario está logueado y tiene los datos necesarios en sesión
-        if (!$this->isLoggedIn() || !$this->session->has('correo'))
-        {
+        if (!$this->isLoggedIn() || !$this->session->has('correo')) {
             log_message('error', 'El usuario no está logueado o faltan datos en la sesión.');
             return redirect()->to('/acceso');
         }
@@ -190,8 +181,7 @@ class ProfileController extends BaseController {
 
         // Verificamos que userId es válido y existe en la base de datos
         $user = $this->userModel->find($userId);
-        if (!$user)
-        {
+        if (!$user) {
             return redirect()->to('/acceso')->with('error', 'Hubo un problema con tu sesión. Por favor, inicia sesión nuevamente.');
         }
 
@@ -202,8 +192,7 @@ class ProfileController extends BaseController {
         // Creamos token para cambio de contraseña (Esto es igual que en cambio de correo electronico)
         $created = $this->tokenModel->createToken($userId, $token, $expiration, $ipAddress, 'cambio_contrasena');
 
-        if (!$created)
-        {
+        if (!$created) {
             return redirect()->back()->with('error', 'No se pudo enviar el correo de cambio de contraseña.');
         }
 
@@ -217,13 +206,10 @@ class ProfileController extends BaseController {
         $email->setSubject('Solicitud de cambio de contraseña');
         $email->setMessage("Haz clic en el siguiente enlace para cambiar tu contraseña: <a href='" . esc($link) . "'>" . esc($link) . "</a>");
 
-        if ($email->send())
-        {
+        if ($email->send()) {
             log_message('info', 'Correo enviado para cambio de contraseña');
             return redirect()->back()->with('success', 'Se ha enviado un correo para cambiar tu contraseña.');
-        }
-        else
-        {
+        } else {
             log_message('error', 'Error al enviar el correo de cambio de contraseña');
             return redirect()->back()->with('error', 'No se pudo enviar el correo de cambio de contraseña.');
         }
@@ -233,13 +219,11 @@ class ProfileController extends BaseController {
      * Método que comprueba la disponibilidad de un token y crea un enlace de 
      * cambio de contraseña con dicho token
      */
-    public function cambiarContrasena($token)
-    {
+    public function cambiarContrasena($token) {
         $userToken = $this->tokenModel->findValidToken($token, 'cambio_contrasena');
 
         // Verificamos si el token es válido y no ha expirado
-        if (!$userToken)
-        {
+        if (!$userToken) {
             log_message('error', "Token no encontrado o expirado: $token");
             return redirect()->to('/')->with('error', 'El enlace para cambiar la contraseña ha expirado o no es válido.');
         }
@@ -250,16 +234,14 @@ class ProfileController extends BaseController {
     /**
      * Método que actualiza la contraseña del usuario en la BD, so todo está validado
      */
-    public function actualizarContrasena()
-    {
+    public function actualizarContrasena() {
         $rules = [
             'new_password' => 'required|min_length[6]|max_length[20]',
             'confirm_password' => 'required|matches[new_password]',
         ];
 
         // Validamos los datos del formulario
-        if (!$this->validate($rules))
-        {
+        if (!$this->validate($rules)) {
             log_message('error', 'Errores de validación: ' . json_encode($this->validator->getErrors()));
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
@@ -272,8 +254,7 @@ class ProfileController extends BaseController {
         $userToken = $this->tokenModel->findValidToken($token, 'cambio_contrasena');
 
         // Verificamos si el token es válido y no ha expirado
-        if (!$userToken)
-        {
+        if (!$userToken) {
             log_message('error', "Token no válido o expirado: {$token}");
             return redirect()->to('/')->with('error', 'El enlace para cambiar la contraseña ha expirado o no es válido.');
         }
@@ -296,11 +277,9 @@ class ProfileController extends BaseController {
     /**
      * Método que solicita el cambio de correo electronico del usuario
      */
-    public function solicitarCambioCorreo()
-    {
+    public function solicitarCambioCorreo() {
         // Verificamos si el usuario está logueado y tiene los datos necesarios en sesión
-        if (!$this->isLoggedIn() || !$this->session->has('correo'))
-        {
+        if (!$this->isLoggedIn() || !$this->session->has('correo')) {
             return redirect()->to('/acceso');
         }
 
@@ -315,8 +294,7 @@ class ProfileController extends BaseController {
         // Creamos token para cambio de correo electrónico
         $created = $this->tokenModel->createToken($userId, $token, $expiration, $ipAddress, 'cambio_correo');
 
-        if (!$created)
-        {
+        if (!$created) {
             return redirect()->back()->with('error', 'No se pudo enviar el correo de cambio de correo electrónico.');
         }
 
@@ -329,13 +307,10 @@ class ProfileController extends BaseController {
         $email->setSubject('Solicitud de cambio de correo electrónico');
         $email->setMessage("Haz clic en el siguiente enlace para cambiar tu correo electrónico: <a href='" . esc($link) . "'>" . esc($link) . "</a>");
 
-        if ($email->send())
-        {
+        if ($email->send()) {
             log_message('info', 'Correo enviado para cambio de correo electrónico');
             return redirect()->back()->with('success', 'Se ha enviado un correo para cambiar tu correo electrónico.');
-        }
-        else
-        {
+        } else {
             log_message('error', 'Error al enviar el correo de cambio de correo electrónico');
             return redirect()->back()->with('error', 'No se pudo enviar el correo de cambio de correo electrónico.');
         }
@@ -344,13 +319,11 @@ class ProfileController extends BaseController {
     /**
      * Método que genera la url con el token que pasamos previamente
      */
-    public function cambiarCorreo($token)
-    {
+    public function cambiarCorreo($token) {
         $userToken = $this->tokenModel->findValidToken($token, 'cambio_correo');
 
         // Verificamos si el token es válido y no ha expirado
-        if (!$userToken)
-        {
+        if (!$userToken) {
             return redirect()->to('/')->with('error', 'El enlace para cambiar el correo ha expirado o no es válido.');
         }
 
@@ -363,16 +336,14 @@ class ProfileController extends BaseController {
      * actual correo por el nuevo que introduce el usuario, y lo guarda en la 
      * base de datos
      */
-    public function actualizarCorreo()
-    {
+    public function actualizarCorreo() {
         $rules = [
             'new_email' => 'required|valid_email|is_unique[usuario.correo]',
             'confirm_email' => 'required|matches[new_email]'
         ];
 
         // Validamos los datos del formulario
-        if (!$this->validate($rules))
-        {
+        if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
@@ -382,8 +353,7 @@ class ProfileController extends BaseController {
         $userToken = $this->tokenModel->findValidToken($token, 'cambio_correo');
 
         // Verificamos si el token es válido y no ha expirado
-        if (!$userToken)
-        {
+        if (!$userToken) {
             return redirect()->to('/')->with('error', 'El enlace para cambiar el correo ha expirado o no es válido.');
         }
 

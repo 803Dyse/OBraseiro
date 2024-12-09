@@ -1,4 +1,4 @@
- <?php
+<?php
 
 namespace App\Controllers;
 
@@ -15,60 +15,73 @@ class PedidoController extends BaseController {
      * Guarda el pedido a traves de una peticion asíncrona en la vista realizarPedido
      * @return type
      */
-    public function guardarPedido()
-    {
+    public function guardarPedido() {
         // Comprobamos que es una solicitud AJAX
-        if ($this->request->isAJAX())
-        {
+        if ($this->request->isAJAX()) {
             $data = $this->request->getJSON(true);
+
+            // Log para verificar el contenido de $data
+            log_message('error', 'Data recibida en guardarPedido: ' . print_r($data, true));
 
             // Obtenemos el id del usuario de la sesión
             $id_usuario = session()->get('id');
 
-            if (!$id_usuario)
-            {
+            if (!$id_usuario) {
                 // Si el usuario no existe, respondemos con un error
                 return $this->response->setStatusCode(401)->setJSON(['message' => 'Usuario no autenticado']);
             }
 
             // Creamos un objeto de nuestro modelo
             $pedidoModel = new PedidoModel();
+            $pedidoDetalleModel = new PedidoDetalleModel();
 
-            // Preparamos los datos a guarda posteriormente para procesar el pedido etc
+            // Preparamos los datos a guardar
             $pedidoData = [
                 'id_usuario' => $id_usuario,
                 'fecha_pedido' => date('Y-m-d H:i:s'),
                 'forma_pago' => 'Pendiente',
-                'subtotal' => $data['subtotal'],
-                'total' => $data['total'],
+                'subtotal' => $data['subtotal'] ?? 0, // Por seguridad, si no existe el índice, se usa 0
+                'total' => $data['total'] ?? 0,
                 'estado' => 'Sin Finalizar',
             ];
 
-            // Guardamos el pedido y pillamos el id generado para este pedido
-            $id_pedido = $pedidoModel->insert($pedidoData);
+            try {
+                // Intentamos insertar el pedido
+                $id_pedido = $pedidoModel->insert($pedidoData);
 
-            // Lo mismo de arriba, pero guardando detalles del pedido
-            $pedidoDetalleModel = new PedidoDetalleModel();
+                if ($id_pedido === false) {
+                    // Si hay errores en la inserción del pedido, las registramos
+                    log_message('error', 'Error al insertar pedido: ' . json_encode($pedidoModel->errors()));
+                    return $this->response->setStatusCode(500)->setJSON(['message' => 'Error al insertar el pedido']);
+                }
 
-            // Con este bucle recorremos a todos los itenes del menu en este 
-            // pedido, para pillar la informacion y manejarla
-            foreach ($data['items'] as $nombreItem => $item)
-            {
-                $detalleData = [
-                    'id_pedido' => $id_pedido,
-                    'nombre_item' => $nombreItem,
-                    'cantidad' => $item['quantity'],
-                    'precio_unitario' => $item['price'],
-                    'precio_total' => $item['quantity'] * $item['price']
-                ];
-                $pedidoDetalleModel->insert($detalleData);
+                // Insertamos los detalles del pedido
+                foreach ($data['items'] as $nombreItem => $item) {
+                    $detalleData = [
+                        'id_pedido' => $id_pedido,
+                        'nombre_item' => $nombreItem,
+                        'cantidad' => $item['quantity'],
+                        'precio_unitario' => $item['price'],
+                        'precio_total' => $item['quantity'] * $item['price']
+                    ];
+
+                    $resDetalle = $pedidoDetalleModel->insert($detalleData);
+
+                    if ($resDetalle === false) {
+                        log_message('error', 'Error al insertar detalle: ' . json_encode($pedidoDetalleModel->errors()));
+                        return $this->response->setStatusCode(500)->setJSON(['message' => 'Error al insertar el detalle']);
+                    }
+                }
+
+                // Si todo va bien
+                return $this->response->setStatusCode(200)->setJSON(['message' => 'Pedido guardado']);
+            } catch (\Exception $e) {
+                // Si ocurre una excepción inesperada, la registramos para ver la causa en logs
+                log_message('error', 'Excepción al guardar el pedido: ' . $e->getMessage());
+                return $this->response->setStatusCode(500)->setJSON(['message' => 'Error interno del servidor']);
             }
-            // Si todo va guay, mandamos un codigo 200 y listo
-            return $this->response->setStatusCode(200)->setJSON(['message' => 'Pedido guardado']);
-        }
-        else
-        {
-            // Si algo peta, mandamos un 400
+        } else {
+            // Si no es una solicitud AJAX, 400
             return $this->response->setStatusCode(400)->setJSON(['message' => 'Solicitud inválida']);
         }
     }
@@ -78,13 +91,11 @@ class PedidoController extends BaseController {
      * pendiente (sin finalizar)
      * @return type
      */
-    public function finalizarCompra()
-    {
+    public function finalizarCompra() {
         // Pillamos el id del usuario
         $id_usuario = session()->get('id');
 
-        if (!$id_usuario)
-        {
+        if (!$id_usuario) {
             return redirect()->to('/acceso')->with('error', 'Debes iniciar sesión para continuar.');
         }
 
@@ -104,8 +115,7 @@ class PedidoController extends BaseController {
         // Si no hay pedido redirigimos con mensaje, es que ningun tipo va 
         // intentar meterse en una url de estas de esta manera.. pero bueno, 
         // lo tengo capado por si acaso
-        if (!$pedido)
-        {
+        if (!$pedido) {
             return redirect()->to('/realizar-pedido')->with('error', 'No tienes pedidos pendientes.');
         }
 
@@ -128,13 +138,11 @@ class PedidoController extends BaseController {
      * pago y tramitar el pedido.
      * @return type
      */
-    public function completarCompra()
-    {
+    public function completarCompra() {
         // Pillamos el id del usuario
         $id_usuario = session()->get('id');
 
-        if (!$id_usuario)
-        {
+        if (!$id_usuario) {
             return redirect()->to('/acceso')->with('error', 'Debes iniciar sesión para continuar.');
         }
 
@@ -148,8 +156,7 @@ class PedidoController extends BaseController {
                 ->orderBy('fecha_pedido', 'DESC')
                 ->first();
 
-        if (!$pedido)
-        {
+        if (!$pedido) {
             return redirect()->to('/realizar-pedido')->with('error', 'No tienes pedidos pendientes.');
         }
 

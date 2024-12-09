@@ -247,10 +247,6 @@
         <button id="confirmar-pedido" class="bg-green-500 text-white w-full py-3 mt-4 rounded hover:bg-green-600 transition-all">
             Confirmar Pedido
         </button>
-        <button class="bg-red-600 text-white w-full py-3 mt-4 rounded hover:bg-red-500 transition-all">
-            Realizar Pago
-        </button>
-
     </section>
 
 </main>
